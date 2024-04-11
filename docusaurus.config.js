@@ -84,6 +84,7 @@ const config = {
       prism: {
         theme: githubDark,
         darkTheme: githubDark,
+        additionalLanguages: ['java'],
       },
     }),
 };

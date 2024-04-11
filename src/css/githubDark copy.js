@@ -38,7 +38,7 @@ const theme = {
 		},
 		{
 			types: [
-				"name",
+				"entity.name",
 				"meta.export.default",
 				"meta.definition.variable"
 			],
