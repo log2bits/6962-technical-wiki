@@ -57,17 +57,17 @@ At the end of all my research, I should have a complete understanding of how adv
 ## Approach
 I plan to spend the next few weeks working on porting over my existing content from Obsidian to Docusaurus, and continue to add more content. Given that almost all my research is done, the majority of my time now will be spent documenting all that I’ve learned. I expect this to take many weeks, and I’ll likely get peer review to see how approachable it is. I’ll also work on the domain name, and site theming. Once that’s done, I’ll start writing my paper, and likely be able to use a lot of the content on my website in my paper as well. All-in-all I’d say I'm on-pace and will be able to complete the project in the given time.
 
-## Part 1:
+## Part 1
 > <ControlTheory />
 
-## Part 2:
+## Part 2
 > <Sensors />
 
-## Part 3:
+## Part 3
 > <SwerveDrive />
 
-## Part 4:
+## Part 4
 > <Telemetry />
 
-## Part 5:
+## Part 5
 > <Vision />
