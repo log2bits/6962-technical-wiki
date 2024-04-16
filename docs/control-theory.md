@@ -68,7 +68,7 @@ The primary problem with Bang-Bang Controllers is that they have no sense of mot
 
 A simple solution to this would be to slow down the motor speed as we get closer to our setpoint, something like this:
 
-```
+```java
 // Calculates the power (-1.0 - 1.0) sent to the motor 
 // given the current measurement and target setpoint
 public double calculate(double measurement, double setpoint) {
@@ -83,11 +83,11 @@ This works in some cases, but depending on the unit of measurement, we get vastl
 
 ## Proportional Term
 
-To compensate for different types of systems with different units and different magnitudes of speeds and inertia, we introduce a **Proportional Term**. By *term*, I just mean it's an additional parameter that decides how this control system behaves.
+To compensate for different types of systems with different units and different magnitudes of speeds and inertia, we introduce a **Proportional Term**. By *term*, I just mean an additional parameter that decides how this control system behaves.
 
 This term acts as a scaling factor for the error, simply multiplying the error by the term results in the output motor power, like so:
 
-```
+```java
 // Calculates the power (-1.0 - 1.0) sent to the motor 
 // given the current measurement and target setpoint
 public double calculate(double measurement, double setpoint, double kP) {
@@ -100,6 +100,10 @@ This acts as a tuning parameter to adjust the system's responsiveness. If the er
 
 However, a P controller alone can still fall short in two main scenarios:
 
-1. Steady-state error: In some circumstances, a proportional controller will still have a residual error at steady state, meaning that the system doesn't perfectly reach the target. This is due to the fact that as the error decreases, the control action decreases proportionally and may not be enough to overcome system disturbances or friction.
+1. **Steady-state error**: In some circumstances, a proportional controller will still have a residual error at steady state, meaning that the system doesn't perfectly reach the target. This is due to the fact that as the error decreases, the control action decreases proportionally and may not be enough to overcome system disturbances or friction.
 
-2. Overshoot: While the proportional controller reduces the chances of overshooting compared to the previous controllers, it does not entirely eliminate it. Large values of Kp, while responsive, increase the likelihood of overshooting the setpoint.
+2. **Overshoot**: While the proportional controller reduces the chances of overshooting compared to the previous controllers, it does not entirely eliminate it. Large values of Kp, while responsive, increase the likelihood of overshooting the setpoint.
+
+## Derivative Term
+
+To compensate for overshoot, we can introduce a new term, the derivative term. This term uses the rate of change (slope) of the error to compensate for the predicted future error. The math behind this term gets a little complicated, so 
