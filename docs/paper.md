@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+slug: /
+---
+
 import ControlTheory from './control-theory.md';
 import Sensors from './sensors.md';
 import SwerveDrive from './swerve-drive.md';
