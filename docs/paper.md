@@ -1,6 +1,7 @@
 ---
 sidebar_position: 1
 slug: /
+full_width: true
 ---
 
 import ControlTheory from './control-theory.md';
@@ -9,16 +10,18 @@ import SwerveDrive from './swerve-drive.md';
 import Telemetry from './telemetry.md';
 import Vision from './vision.md';
 
-# Formal Paper
+# Capstone Paper
 
 ## Intro
-The nature of the FIRST Robotics Competition fuses design and engineering, embracing the pillars of mechanical, electrical, and software engineering. When people join the team with an interest in software engineering, they typically concentrate solely on that field, much like my own initial approach. I thought that stretching myself thin across many aspects of robotics would worsen me as a programmer. I could not have been more wrong. After many years, I’ve now learned from experience just how important understanding the electrical and mechanical function of the robot is as a programmer. If we imagine the code as the robot's brain, it becomes clear that to maximize the movement of its limbs, the robot's brain must first understand its body. This is something that I’d learned, but didn’t come easy, and hasn't yet been emphasized enough in the team. As it stands now, I hold a vast majority of the programming knowledge, and my departure at graduation could throw the team for a loop. This is part of what I aim to solve in my project.
+The nature of the FIRST Robotics Competition fuses design and engineering, embracing the pillars of mechanical, electrical, and software engineering. When people join the team with an interest in software engineering, they typically concentrate solely on that field, much like my own initial approach. I thought that stretching myself thin across many aspects of robotics would worsen me as a programmer. I could not have been more wrong.
+
+After many years, I’ve now learned from experience just how important understanding the electrical and mechanical function of the robot is as a programmer. If we imagine the code as the robot's brain, it becomes clear that to maximize the movement of its limbs, the robot's brain must first understand its body. This is something that I’d learned, but didn’t come easy, and hasn't yet been emphasized enough in the team. As it stands now, I hold a vast majority of the programming knowledge, and my departure at graduation could throw the team for a loop. This is part of what I aim to solve in my project.
 
 ## Research Question
 My research question is: “What are the key programming principles in robotics and how can they be effectively taught to the team?” This question can be split up into two parts, the research/experience around understanding many of the important programming principles, and the research required to find the best way to impart this knowledge onto the team. These are both very different types of research, making this an interesting project to pursue.
 
 ## Literature Review
-A lot of the research for this project, at least the first half, gaining the knowledge and experience, has already been acquired through my many years on the robotics team. A lot of this knowledge I’d gotten from experience or from countless sources scattered across the web. The fact that a lot of this information is either not documented, or hard to find makes it difficult for new programmers to gain in depth knowledge without trial and error. This is another part of my project, consolidating vital information from my experience and around the internet into one cohesive wiki. Moving on, here’s the research I’ve done specific to this project, not only learning new programming concepts, but also learning how these sources convey their information:
+I already know a lot about robotics, specifically software, but for this project, I wanted to dive deeper and explore the most advanced and powerful techniques to learn and bestow upon the team. In my research, I found that a lot of the existing literature is hard to find, and quite scattered. This requires a deep understanding of the topic to find and prerequisite knowledge to understand the literature. This is a hard barrier for entry for a lot of newer students, and a lot of programmers end up falling back on trial and error to learn these difficult concepts. For this project, I searched the web for the best sources of information, and have consolidated it into one cohesive wiki. Here are some of my most important sources:
 
 - [Controls Engineering in the FIRST Robotics Competition (Graduate-level control theory for high schoolers, by Tyler Veness)](https://file.tavsys.net/control/controls-engineering-in-frc.pdf)  
 A very detailed and in-depth paper (300+ pages) explaining one of the most important robotics principles, Control Theory, and all the math behind it. This is the theory behind making mechanical systems function in a controlled, predictable, and repeatable way. This may seem simple in principle, but in reality it quickly becomes very complicated. An intuitive example of this is when balancing a pencil on your finger. First of all, you need your eyes; a way to measure the pencil’s state. This allows you to react when the state is unfavorable. This alone is not enough, since with just this, you’d only move your hand after the pencil starts falling. The real power comes from your brain's ability to predict the future state of the pencil. This is called a “feedforward controller”. Your brain models the system and how it reacts, so it intuitively knows that the pencil will continue to fall when it's tipped to the side. These two principles provide the foundation for control theory and how to actuate complex mechanisms. 
@@ -76,3 +79,7 @@ I plan to spend the next few weeks working on porting over my existing content f
 
 ## Part 5
 > <Vision />
+
+## Discussion
+
+## Conclusion
