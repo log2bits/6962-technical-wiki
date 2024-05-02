@@ -43,3 +43,6 @@ code {
   font-family: 'Fira Code', monospace !important;
 }
 
+p, li, div {
+  line-height: 2;
+}
