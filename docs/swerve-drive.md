@@ -363,8 +363,16 @@ drivePID.setReference(
 ```
 
 ### Angle Error Speed Reduction
+One potential problem is that it can take a while for the PID controller for steering to finally reach it's setpoint, and if the controller for driving achieves it's velocity setpoint before the steering controller does, the whole drivetrain can travel in a totally different direction than intended. This can be mitigated by reducing the speed of the drive motor based on how far the steering controller is away from it's setpoint:
 
+```java
+// Slow down the drive motor when the steering angle is far from the target angle.
+if (SWERVE_DRIVE.DO_ANGLE_ERROR_SPEED_REDUCTION) {
+    speedMetersPerSecond *= Math.cos(SwerveMath.angleDistance(radians, getMeasuredState().angle.getRadians()));
+}
+```
 
 ### Steer Encoder Seeding
+
 
 ### 
