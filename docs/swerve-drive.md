@@ -1158,3 +1158,387 @@ public class SwerveDrive extends SubsystemBase {
 }
 ```
 
+### Kinematics
+A lot of the programming that goes into swerve has to do with the math behind how the module states are decided.
+This is done with kinematics, and thankfully, WPILib has great build-in support for it.
+
+The kinematics is defined like this:
+```java
+private SwerveDriveKinematics kinematics = getKinematics();
+```
+where `getKinematics` is:
+```java
+/**
+ * Create a kinematics object for the swerve drive based on the SWERVE_DRIVE constants
+ * @return A SwerveDriveKinematics object that models the swerve drive
+ */
+public static SwerveDriveKinematics getKinematics() {
+  return new SwerveDriveKinematics(
+    new Translation2d( SWERVE_DRIVE.TRACKWIDTH / 2.0, SWERVE_DRIVE.WHEELBASE  / 2.0), 
+    new Translation2d( SWERVE_DRIVE.TRACKWIDTH / 2.0, -SWERVE_DRIVE.WHEELBASE / 2.0), 
+    new Translation2d(-SWERVE_DRIVE.TRACKWIDTH / 2.0, SWERVE_DRIVE.WHEELBASE  / 2.0), 
+    new Translation2d(-SWERVE_DRIVE.TRACKWIDTH / 2.0, -SWERVE_DRIVE.WHEELBASE / 2.0));
+}
+```
+The `SwerveDriveKinematics` object is part of WPILib, and simply takes in a set of four positions for the swerve modules relative to the center of the robot.
+The order of these positions is very important, and it must be Front Left, Front Right, Back Left, Back Right.
+This kinematics object is then used to convert a desired chassis movement to the individual states sent to the swerve modules:
+```java
+SwerveDriveWheelStates moduleStates = kinematics.toWheelSpeeds(robotRelativeChassisSpeeds);
+```
+
+### ChassisSpeeds
+`ChassisSpeeds` is the common way to store a given movement of the swerve drive. It contains a translational velocity and rotational velocity. Importantly, this can either be relative to the robot (positive is always forward), or relative to the field (positive is always away from the alliance wall). This can get tricky, so be sure which frame of reference the ChassisSpeeds object is when you're programming.
+
+### Odometry
+An odometer is a device that is commonly found in cars to measure how many miles they've driven. The same goes for swerve drive. Because we can measure how far each wheel travels, and we have a gyroscope, we can theoretically calculate exactly where the robot is on the field. In practice, this method is prone to drift, and often becomes more inaccurate as the match goes on, especially if the robot is collided with. These collisions, and even just quick acceleration and stopping can cause the wheels to slip, giving the odometer false data.
+
+We can mitigate this with a Kalman Filter. A kalman filter is a mathematical model to fuse multiple sources of data. If we use this with vision data from the cameras, we can get a pretty reasonable estimate of our position on the field. This is called a `PoseEstimator`.
+
+This is how that is initialized:
+```java
+// Set up pose estimator and rotation controller
+poseEstimator = new CustomSwerveDrivePoseEstimator(
+  kinematics,
+  SWERVE_DRIVE.STARTING_POSE.get().getRotation(), // Starting rotation
+  getModulePositions().positions, // The accumulated distance so far on each wheel
+  SWERVE_DRIVE.STARTING_POSE.get(), // Starting pose
+  VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(2)), // Margin of error for odometry
+  VecBuilder.fill(1.0, 1.0, Units.degreesToRadians(30)) // Margin of error for vision pose estimates (apriltags)
+);
+```
+
+And then, we periodically feed it data:
+```java
+poseEstimator.update(gyroHeading.plus(gyroOffset), getModulePositions());
+```
+
+And when we want to know the position on the field, we call:
+```java
+/**
+ * @return Pose on the field from odometer data as a Pose2d
+ */
+public Pose2d getPose() {
+  Pose2d estimatedPose = poseEstimator.getEstimatedPosition();
+  return estimatedPose;
+}
+```
+
+Here's all the odometry code, including some that I've added in to compensate for gyro disconnects and bad vision data:
+
+```java
+public void updateOdometry() {
+  Pose2d poseBefore = getPose();
+
+  // Math to use the swerve modules to calculate the robot's rotation if the gyro disconnects
+  SwerveDriveWheelPositions wheelPositions = getModulePositions();
+  Twist2d twist = kinematics.toTwist2d(previousWheelPositions, wheelPositions);
+  Pose2d newPose = getPose().exp(twist);
+  if (!gyroConnected && (gyro.isConnected() && !gyro.isCalibrating())) {
+    gyroOffset = gyroHeading.minus(gyro.getRotation2d());
+  }
+  gyroConnected = gyro.isConnected() && !gyro.isCalibrating();
+  if (gyroConnected && !RobotBase.isSimulation()) {
+    gyroHeading = gyro.getRotation2d();
+  } else {
+    gyroHeading = gyroHeading.plus(newPose.getRotation().minus(getPose().getRotation()));
+  }
+
+  poseEstimator.update(gyroHeading.plus(gyroOffset), getModulePositions());
+  AprilTags.injectVisionData(LIMELIGHT.APRILTAG_CAMERA_POSES, this); // Limelight vision data from apriltags
+
+  // Sometimes the vision data will cause the robot to go crazy, so we check if the robot is moving too fast and reset the pose if it is
+  Pose2d currentPose = getPose();
+  double magnitude = currentPose.getTranslation().getNorm();
+  if (magnitude > 1000 || Double.isNaN(magnitude) || Double.isInfinite(magnitude)) {
+    System.out.println("BAD");
+    LEDs.setState(LEDs.State.BAD);
+    resetPose(gyroHeading.plus(gyroOffset), poseBefore, previousWheelPositions);
+  }
+  
+  previousWheelPositions = wheelPositions.copy();
+}
+```
+
+### Drive Attainable Speeds
+There are two ways to drive SwerveDrive, field-relative, and robot-relative. Most of the time, we drive the robot using field-relative controls, but we still need robot-relative occasionally.
+Commanding the drivetrain to drive is done using one of the four public methods:
+```java
+/**
+ * Drives the robot at a given field-relative velocity
+ * @param xVelocity [meters / second] Positive x is away from your alliance wall
+ * @param yVelocity [meters / second] Positive y is to your left when standing behind the alliance wall
+ * @param angularVelocity [radians / second] Rotational velocity, positive spins counterclockwise
+ */
+public void driveFieldRelative(double xVelocity, double yVelocity, double angularVelocity) {
+  driveFieldRelative(new ChassisSpeeds(xVelocity, yVelocity, angularVelocity));
+}
+
+/**
+ * 
+ * Drives the robot at a given field-relative ChassisSpeeds
+ * @param fieldRelativeSpeeds
+ */
+private void driveFieldRelative(ChassisSpeeds fieldRelativeSpeeds) {
+  driveAttainableSpeeds(fieldRelativeSpeeds);
+}
+
+/**
+ * Drives the robot at a given robot-relative velocity
+ * @param xVelocity [meters / second] Positive x is towards the robot's front
+ * @param yVelocity [meters / second] Positive y is towards the robot's left
+ * @param angularVelocity [radians / second] Rotational velocity, positive spins counterclockwise
+ */
+public void driveRobotRelative(double xVelocity, double yVelocity, double angularVelocity) {
+  driveRobotRelative(new ChassisSpeeds(xVelocity, yVelocity, angularVelocity));
+}
+
+/**
+ * Drives the robot at a given robot-relative ChassisSpeeds
+ * @param robotRelativeSpeeds
+ */
+private void driveRobotRelative(ChassisSpeeds robotRelativeSpeeds) {
+  driveFieldRelative(ChassisSpeeds.fromRobotRelativeSpeeds(robotRelativeSpeeds, getAllianceAwareHeading()));
+}
+```
+
+Now you might notice, that these methods all eventually call each other, and then call `driveAttainableSpeeds`. This method post-processes the drive commands to allow for smoother driving and desired movement that is actually attainable given the physics at play. Here's that method:
+
+```java
+/**
+ * Drives the robot at a given field-relative ChassisSpeeds. This is the base method, and all other drive methods call this one.
+ * @param fieldRelativeSpeeds The desired field-relative speeds
+ */
+private void driveAttainableSpeeds(ChassisSpeeds fieldRelativeSpeeds) {
+  isDriven = true;
+
+  // Avoid obstacles
+  if (!(RobotState.isAutonomous() && !Autonomous.avoidPillars)) {
+    Translation2d velocity = XBoxSwerve.avoidObstacles(new Translation2d(
+      fieldRelativeSpeeds.vxMetersPerSecond,
+      fieldRelativeSpeeds.vyMetersPerSecond
+    ), this);
+    fieldRelativeSpeeds = new ChassisSpeeds(velocity.getX(), velocity.getY(), fieldRelativeSpeeds.omegaRadiansPerSecond);
+  }
+
+  // If the robot is rotating, cancel the rotation override
+  if (fieldRelativeSpeeds.omegaRadiansPerSecond > 0 && !RobotState.isAutonomous()) {
+    rotationOverridePoint = null;
+  }
+
+  // If the robot is in autonomous mode, or if a rotation override point is set, stop the robot from rotating
+  if (rotationOverridePoint != null || RobotState.isAutonomous()) {
+    fieldRelativeSpeeds.omegaRadiansPerSecond = 0.0;
+    if (rotationOverridePoint != null) facePoint(rotationOverridePoint.get(), rotationOverrideOffset);
+  }
+  
+  // Conditionals to compensate for the slop in rotation when aligning with PID controllers
+  if (Math.abs(fieldRelativeSpeeds.omegaRadiansPerSecond) > 0.01) {
+    setTargetHeading(getHeading());
+    isAligning = false;
+  }
+  if (!isAligning && doneRotating.calculate(Math.abs(getDrivenChassisSpeeds().omegaRadiansPerSecond) < 0.1)) {
+    setTargetHeading(getHeading());
+    isAligning = true;
+  }
+  
+  // Calculate the angular velocity to align with the target heading
+  double alignmentAngularVelocity = alignmentController.calculate(getHeading().getRadians()) + addedAlignmentAngularVelocity;
+  addedAlignmentAngularVelocity = 0.0;
+  if (isAligning && !alignmentController.atSetpoint() && !parked) fieldRelativeSpeeds.omegaRadiansPerSecond += alignmentAngularVelocity;
+
+  // Calculate the wheel speeds to achieve the desired field-relative speeds
+  SwerveDriveWheelStates wheelSpeeds = kinematics.toWheelSpeeds(fieldRelativeSpeeds);
+  SwerveDriveKinematics.desaturateWheelSpeeds(
+    wheelSpeeds.states,
+    fieldRelativeSpeeds,
+    SWERVE_DRIVE.PHYSICS.MAX_LINEAR_VELOCITY,
+    SWERVE_DRIVE.PHYSICS.MAX_LINEAR_VELOCITY,
+    SWERVE_DRIVE.PHYSICS.MAX_ANGULAR_VELOCITY
+  );
+  fieldRelativeSpeeds = kinematics.toChassisSpeeds(wheelSpeeds);
+
+  // Limit translational acceleration
+  Translation2d targetLinearVelocity = new Translation2d(fieldRelativeSpeeds.vxMetersPerSecond, fieldRelativeSpeeds.vyMetersPerSecond);
+  Translation2d currentLinearVelocity = new Translation2d(drivenChassisSpeeds.vxMetersPerSecond, drivenChassisSpeeds.vyMetersPerSecond);
+  linearAcceleration = (targetLinearVelocity).minus(currentLinearVelocity).div(Robot.getLoopTime());
+  double linearForce = linearAcceleration.getNorm() * SWERVE_DRIVE.ROBOT_MASS;
+
+  // Limit rotational acceleration
+  double targetAngularVelocity = fieldRelativeSpeeds.omegaRadiansPerSecond;
+  double currentAngularVelocity = drivenChassisSpeeds.omegaRadiansPerSecond;
+  angularAcceleration = (targetAngularVelocity - currentAngularVelocity) / Robot.getLoopTime();
+  double angularForce = Math.abs((SWERVE_DRIVE.PHYSICS.ROTATIONAL_INERTIA * angularAcceleration) / SWERVE_DRIVE.PHYSICS.DRIVE_RADIUS);
+  
+  // Limit the total force applied to the robot
+  double frictionForce = 9.80 * SWERVE_DRIVE.ROBOT_MASS * SWERVE_DRIVE.FRICTION_COEFFICIENT;
+  if (linearForce + angularForce > frictionForce) {
+    double factor = (linearForce + angularForce) / frictionForce;
+    linearAcceleration = linearAcceleration.div(factor);
+    angularAcceleration /= factor;
+  }
+
+  // Calculate the attainable linear and angular velocities and update the driven chassis speeds
+  Translation2d attainableLinearVelocity = currentLinearVelocity.plus(linearAcceleration.times(Robot.getLoopTime()));
+  double attainableAngularVelocity = currentAngularVelocity + (angularAcceleration * Robot.getLoopTime());
+  drivenChassisSpeeds = new ChassisSpeeds(attainableLinearVelocity.getX(), attainableLinearVelocity.getY(), attainableAngularVelocity);
+  
+  // Discretize converts a continous-time chassis speed into discrete-time to compensate for the loop time. This helps reduce drift when rotating while driving in a straight line.
+  drivenChassisSpeeds = ChassisSpeeds.discretize(drivenChassisSpeeds, Robot.getLoopTime());
+  SwerveDriveWheelStates drivenModuleStates = kinematics.toWheelSpeeds(ChassisSpeeds.fromFieldRelativeSpeeds(drivenChassisSpeeds, getAllianceAwareHeading()));
+  
+  // If the robot is not moving, park the modules
+  boolean moving = false;
+  for (SwerveModuleState moduleState : kinematics.toWheelSpeeds(fieldRelativeSpeeds).states) if (Math.abs(moduleState.speedMetersPerSecond) > 0.0) moving = true;
+  for (SwerveModuleState moduleState : drivenModuleStates.states) if (Math.abs(moduleState.speedMetersPerSecond) > 0.0) moving = true;
+  parked = false;
+
+  if (!moving) {
+    if (!parkingDisabled) {
+      parkModules();
+      return;
+    }
+    // If the robot is aligning, park the modules in a different configuration.
+    // Parking normally while aligning can cause the robot to drift away from the setpoint.
+    if (alignmentController.atSetpoint()) {
+      parkForAlignment();
+    }
+  }
+
+  parkingDisabled = false;
+  driveModules(drivenModuleStates);
+}
+```
+
+The biggest thing here comes from the acceleration limits we impose on the velocities. By keeping track of the previous velocity, we can calculate our desired acceleration and clamp it to reasonable limits based on the friction force from the carpet.
+
+Additionally, we have a PID controller for rotation. This is to keep the heading of the robot fixed when we're not intending to rotate. This means that if we've been bumped by another robot, we'll automatically re-orient ourselves to face the same direction as before.
+
+### Facing a point
+To face a point seems as simple as telling our rotation PID controller to point in a certain direction. Ideally, it would be this simple, but in practice, there is quite a delay between setting the target rotation and the robot actually rotating to that point. If the target direction changes because we're moving, the PID controller won't be able to keep up. This is where we can apply some predictive behavior.
+
+If we know our current velocity, we can calculate the rotational velocity required to stay pointed at the point, and add that to the output of our PID controller. Here's what that whole method looks like:
+
+```java
+/**
+ * Faces a point on the field
+ * @param point
+ * @param rotationOffset
+ */
+public void facePoint(Translation2d point, Rotation2d rotationOffset) {
+  double time = 0.02;
+
+  // With no point, do nothing.
+  if (point == null) {
+    setTargetHeadingAndVelocity(getHeading(), 0.0);
+    return;
+  }
+
+  // If the robot is close to the point, do nothing.
+  if (point.getDistance(getPose().getTranslation()) < 1.0 && RobotState.isAutonomous()) {
+    return;
+  }
+
+  // Calculate the future position of the robot, and predict how the heading will need to change in the future.
+  Translation2d currentPosition = getPose().getTranslation();
+  Translation2d futurePosition = getPose().getTranslation().plus(getFieldVelocity().times(time));
+  Rotation2d currentTargetHeading = point.minus(currentPosition).getAngle().plus(rotationOffset);
+  Rotation2d futureTargetHeading = point.minus(futurePosition).getAngle().plus(rotationOffset);    
+  double addedVelocity = futureTargetHeading.minus(currentTargetHeading).getRadians() / time;
+  if (getPose().getTranslation().getDistance(point) < 1.0) {
+    addedVelocity = 0.0;
+  }
+  setTargetHeadingAndVelocity(currentTargetHeading, addedVelocity);
+}
+```
+
+### PathPlanner
+Pathplanner is the tool we use for autonomous and teleoperated assisted driving. It allows us to create a path on the field and have the robot follow it. Here's what that setup looks like:
+
+```java
+// Path planner setup
+AutoBuilder.configureHolonomic(
+  this::getPose, // Robot pose supplier
+  this::resetPose, // Method to reset odometry (will be called if your auto has a starting pose)
+  this::getMeasuredChassisSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+  this::driveRobotRelative, // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds
+  new HolonomicPathFollowerConfig( // HolonomicPathFollowerConfig, this should likely live in your Constants class
+    new PIDConstants(SWERVE_DRIVE.AUTONOMOUS.TRANSLATION_GAINS.kP, SWERVE_DRIVE.AUTONOMOUS.TRANSLATION_GAINS.kI, SWERVE_DRIVE.AUTONOMOUS.TRANSLATION_GAINS.kD), // Translation PID constants
+    new PIDConstants(SWERVE_DRIVE.AUTONOMOUS.   ROTATION_GAINS.kP, SWERVE_DRIVE.AUTONOMOUS.   ROTATION_GAINS.kI, SWERVE_DRIVE.AUTONOMOUS.   ROTATION_GAINS.kD), // Rotation PID constants
+    SWERVE_DRIVE.PHYSICS.MAX_LINEAR_VELOCITY, // Max module speed, in m/s
+    SWERVE_DRIVE.PHYSICS.DRIVE_RADIUS, // Drive base radius in meters. Distance from robot center to furthest module.
+    new ReplanningConfig(true, true) // Default path replanning config. See the API for the options here
+  ),
+  () -> false,
+  this // Reference to this subsystem to set requirements
+);
+```
+
+And when we want to have the robot drive to a position on the field, we can generate a path and have it follow the path like so:
+
+```java
+/**
+ * Go to a position on the field (without object avoidance)
+ * @param pose Field-relative pose on the field to go to
+ * @param xboxController Xbox controller to cancel the command
+ * @return A command to run
+ */
+public Command goToSimple(Pose2d pose) {
+  Rotation2d angle = pose.getTranslation().minus(getPose().getTranslation()).getAngle();
+
+  List<Translation2d> bezierPoints = PathPlannerPath.bezierFromPoses(
+    new Pose2d(getPose().getTranslation(), angle),
+    new Pose2d(pose.getTranslation(), angle)
+  );
+
+  PathPlannerPath path = new PathPlannerPath(
+    bezierPoints,
+    SWERVE_DRIVE.AUTONOMOUS.DEFAULT_PATH_CONSTRAINTS,
+    new GoalEndState(
+      0.0,
+      pose.getRotation(),
+      true
+    )
+  );
+
+  return Commands.sequence(
+    AutoBuilder.followPath(path),
+    runOnce(() -> setTargetHeading(pose.getRotation()))
+  );
+}
+```
+
+If we want to do something more complicated, we can avoid objects with pathfinding:
+
+```java
+/**
+ * Pathfind to a first given point on the field, and then follow a straight line to the second point.
+ * @param firstPoint
+ * @param secondPoint
+ * @return
+ */
+public Command pathfindThenFollowPath(Pose2d firstPoint, Pose2d secondPoint) {
+  Rotation2d angle = secondPoint.getTranslation().minus(firstPoint.getTranslation()).getAngle();
+
+  List<Translation2d> bezierPoints = PathPlannerPath.bezierFromPoses(
+    new Pose2d(firstPoint.getTranslation(), angle),
+    new Pose2d(secondPoint.getTranslation(), angle)
+  );
+
+  PathPlannerPath path = new PathPlannerPath(
+    bezierPoints,
+    SWERVE_DRIVE.AUTONOMOUS.DEFAULT_PATH_CONSTRAINTS,
+    new GoalEndState(
+      0.0,
+      secondPoint.getRotation(),
+      true
+    )
+  );
+  
+  return AutoBuilder.pathfindThenFollowPath(
+    path,
+    SWERVE_DRIVE.AUTONOMOUS.DEFAULT_PATH_CONSTRAINTS,
+    0.0 // Rotation delay distance in meters. This is how far the robot should travel before attempting to rotate.
+  );
+}
+```

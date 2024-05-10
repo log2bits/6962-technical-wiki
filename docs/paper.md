@@ -9,9 +9,8 @@ import Sensors from './sensors.md';
 import SwerveDrive from './swerve-drive.md';
 import Telemetry from './telemetry.md';
 import Simulation from './simulation.md';
-import Vision from './vision.md';
 
-# Capstone Paper (WIP)
+# Capstone Paper
 
 ## Intro
 The FIRST Robotics Competition is the ultimate robotics showdown for high-school students worldwide that throws them headfirst into the deep end of STEM. Since 1989, this competition has been the breeding ground for innovation, collaboration, and real-world problem-solving in a form similar to a sport, but for robotics.
@@ -75,7 +74,6 @@ On top of this research derived from hands-on application, I also dove into many
 3. Swerve Drive
 4. Telemetry
 5. Simulation
-6. Vision
 
 Dividing it this way gives learners a way to single out what they want to learn, but also go through step-by-step all the knowledge at once without backtracking too much.
 
@@ -96,7 +94,7 @@ Dividing it this way gives learners a way to single out what they want to learn,
 ## Part 5
 > <Simulation />
 
-## Part 6
-> <Vision />
-
 ## Conclusion
+Through a series of resources, hands-on experimentation, and research into specialized software practices for FRC, this project delved into the complexities and intricacies of robotics, offering insights into Control Theory, Sensors, Swerve Drive, Telemetry, and Simulation. Each discovery was carefully documented and organized into a comprehensive architecture for optimal retention and accessibility, all housed in a purpose-built wiki using Docusaurus.
+
+I hope this resource becomes a great learning experience for intermediate programmers to take that next step into advanced robotics engineering and make their mark on FRC forever.
