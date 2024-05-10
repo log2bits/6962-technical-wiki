@@ -46,3 +46,9 @@ code {
 p, li, div {
   line-height: 2;
 }
+
+pre {
+  max-height: 800px;
+  /* Adjust this value to fit your preference */
+  overflow-y: auto;
+}
