@@ -2,6 +2,7 @@
 sidebar_position: 1
 slug: /
 full_width: true
+title: Capstone Paper
 ---
 
 import ControlTheory from './control-theory.md';
@@ -10,7 +11,34 @@ import SwerveDrive from './swerve-drive.md';
 import Telemetry from './telemetry.md';
 import Simulation from './simulation.md';
 
-# Capstone Paper
+# <div style={{ display: "none" }}>Capstone Paper</div>
+
+<style jsx>
+{`
+  .mla-title-page {
+    height: calc(100vh - 150px);; /* Full height of the viewport */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    border-bottom: 1px solid #000;
+    margin-bottom: 20px;
+  }
+
+  .mla-title-page h1,
+  .mla-title-page h2,
+  .mla-title-page p {
+    margin: 0;
+  }
+`}
+</style>
+
+<div className="mla-title-page">
+    <h1>Distilling Software <br /> Knowledge For FRC</h1>
+    <h2>A Capstone Paper</h2>
+    <p>Written by Logan MacAskill</p>
+</div>
 
 ## Intro
 The FIRST Robotics Competition is the ultimate robotics showdown for high-school students worldwide that throws them headfirst into the deep end of STEM. Since 1989, this competition has been the breeding ground for innovation, collaboration, and real-world problem-solving in a form similar to a sport, but for robotics.

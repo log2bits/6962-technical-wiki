@@ -19,7 +19,3 @@ These encoders are great but come with a few problems, mainly that they reset to
 Absolute encoders are the solution to this problem. If the encoder never resets its position every boot, and retains its value persistently, the encoder is an absolute encoder. These encoders are great for pivoting mechanisms, where you need to know the exact pivot angle for repeatable control. The only problem with these sorts of encoders is that they only read values between 0-360 degrees, so you know where the shaft is rotated, but not how many times.
 
 The solution to this is that absolute encoders aren't built into the encoder, and are usually instead mounted to the pivoting mechanism itself. [Here's an example](https://www.revrobotics.com/rev-11-1271/). These are usually plugged into the DIO ports on the RoboRIO, and you declare them with `new DutyCycleEncoder(DIO_INPUT)`
-
-## Gyroscope
-
-## Motor Data
