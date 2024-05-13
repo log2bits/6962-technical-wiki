@@ -35,7 +35,7 @@ import Simulation from './simulation.md';
 </style>
 
 <div className="mla-title-page">
-    <h1>Distilling Software <br /> Knowledge For FRC</h1>
+    <h1>Distilling Advanced Programming <br /> Principles For FRC</h1>
     <h2>A Capstone Paper</h2>
     <p>Written by Logan MacAskill</p>
 </div>
