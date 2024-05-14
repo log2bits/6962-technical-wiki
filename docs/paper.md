@@ -48,7 +48,7 @@ Programming is one of the core skills applied in FRC, it gives these robots life
 ## Research Question
 It simply comes down to: “What are the key programming principles in robotics and how can they be effectively taught to the team?” This question has two parts, the research/experience for understanding many of these important and advanced programming principles, and the research into finding the best way to impart this knowledge onto the team.
 
-## Literature Review
+## Sources
 I already know a lot about robotics, specifically software, but for this project, I wanted to dive deeper and explore the most advanced and powerful techniques to learn and bestow upon the team. In my research, I found that a lot of the existing literature is hard to find, and quite scattered. This requires a deep understanding of the topic and prerequisite knowledge to understand the literature. This is a hard barrier for entry for a lot of newer students, and a lot of programmers end up falling back to trial and error to learn these difficult concepts. For this project, I searched the web for the best sources of information, and have consolidated it into one cohesive wiki. Here are some of my most important sources:
 
 - [Controls Engineering in the FIRST Robotics Competition (Graduate-level control theory for high schoolers, by Tyler Veness)](https://file.tavsys.net/control/controls-engineering-in-frc.pdf)  
@@ -105,7 +105,7 @@ On top of this research derived from hands-on application, I also dove into many
 
 Dividing it this way gives learners a way to single out what they want to learn, but also go through step-by-step all the knowledge at once without backtracking too much.
 
-## Acquired Knowledge
+## Acquired Knowledge & Literature Review
 
 ## Part 1
 > <ControlTheory />
