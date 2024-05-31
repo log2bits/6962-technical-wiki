@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+slug: /
+---
+
 # Control Theory
 Control theory is a major part of robotics and harnesses powerful techniques that allow for precise and controlled mechanical actuation. If you have a mechanism, and you wish to have it reach a desired state, you need control theory in some way or another.
 

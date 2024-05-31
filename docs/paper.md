@@ -1,8 +1,6 @@
 ---
-sidebar_position: 1
-slug: /
-full_width: true
 title: Capstone Paper
+sidebar_position: 0
 ---
 
 import ControlTheory from './control-theory.md';
